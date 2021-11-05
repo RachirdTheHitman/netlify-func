@@ -1,8 +1,6 @@
 import LambdaTester from "lambda-tester";
 const myHandler = require("./kyc-func").handler;
 
-// jest.spyOn(global.Math, "random").mockReturnValue(0.5);
-
 describe("kyc function handler", function () {
   it("should return error message indicating corresponding field cannot be empty", async function () {
     await LambdaTester(myHandler)
