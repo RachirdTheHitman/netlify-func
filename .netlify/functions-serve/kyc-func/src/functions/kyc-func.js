@@ -2505,22 +2505,31 @@ var ResultCode;
 })(ResultCode || (ResultCode = {}));
 
 // utils/dateValidate.ts
-var dateValidate = (date) => {
-  const regex = /^\d{4}-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$/;
-  return regex.test(date);
+var dateValidate = (dateString) => {
+  const regex = /^\d{4}-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$/;
+  if (!regex.test(dateString)) {
+    return false;
+  }
+  const cleanDateString = dateString.replace(/\D/g, "");
+  const year = parseInt(cleanDateString.substr(0, 4));
+  const month = parseInt(cleanDateString.substr(4, 2));
+  const day = parseInt(cleanDateString.substr(6, 2));
+  var daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (year % 400 == 0 || year % 100 != 0 && year % 4 == 0) {
+    daysInMonth[1] = 29;
+  }
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth[month - 1]) {
+    return false;
+  }
+  return true;
 };
 
 // utils/validateRequest.ts
 var validateRequest = (event) => {
   if (event.httpMethod !== "POST") {
     return {
-      statusCode: 405,
-      body: JSON.stringify({
-        error: {
-          field: "http request method error",
-          message: "only post method allowed!"
-        }
-      })
+      field: "http request method error",
+      message: "only post method allowed!"
     };
   }
   const {
@@ -2534,129 +2543,83 @@ var validateRequest = (event) => {
   } = JSON.parse(event.body);
   if (!birthDate) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "Birthdate",
-          message: "Birthdate cannot be empty"
-        }
-      })
+      field: "Birthdate",
+      message: "Birthdate cannot be empty"
     };
   } else if (!dateValidate(birthDate)) {
     console.log(dateValidate(birthDate));
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "Birthdate",
-          message: "Birthdate must be in format YYYY-MM-DD and valid"
-        }
-      })
+      field: "Birthdate",
+      message: "Birthdate must be in format YYYY-MM-DD and valid"
     };
   }
   if (!givenName) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "GivenName",
-          message: "GivenName cannot be empty"
-        }
-      })
+      field: "GivenName",
+      message: "GivenName cannot be empty"
     };
   } else if (givenName.length >= 100) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "GivenName",
-          message: "GivenName is 100 characters long at most"
-        }
-      })
+      field: "GivenName",
+      message: "GivenName is 100 characters long at most"
     };
   }
   if (middleName && middleName.length >= 100) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "middleName",
-          message: "middleName is 100 characters long at most"
-        }
-      })
+      field: "middleName",
+      message: "middleName is 100 characters long at most"
     };
   }
   if (!familyName) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "FamilyName",
-          message: "FamilyName cannot be empty"
-        }
-      })
+      field: "FamilyName",
+      message: "FamilyName cannot be empty"
     };
   } else if (familyName.length >= 100) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "FamilyName",
-          message: "FamilyName is 100 characters long at most"
-        }
-      })
+      field: "FamilyName",
+      message: "FamilyName is 100 characters long at most"
     };
   }
   if (!licenceNumber) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "LicenceNumber",
-          message: "LicenceNumber cannot be empty"
-        }
-      })
+      field: "LicenceNumber",
+      message: "LicenceNumber cannot be empty"
     };
   }
   if (!stateOfIssue) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "StateOfIssue",
-          message: "StateOfIssue cannot be empty"
-        }
-      })
+      field: "StateOfIssue",
+      message: "StateOfIssue cannot be empty"
     };
   }
   if (expiryDate && !dateValidate(expiryDate)) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "ExpiryDate",
-          message: "ExpiryDate must be in format YYYY-MM-DD and valid"
-        }
-      })
+      field: "ExpiryDate",
+      message: "ExpiryDate must be in format YYYY-MM-DD and valid"
     };
   }
   if (!Object.values(State).includes(stateOfIssue)) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: {
-          field: "StateOfIssue",
-          message: "StateOfIssue must be one of NSW,QLD,SA,TAS,VIC,WA,ACT,NT"
-        }
-      })
+      field: "StateOfIssue",
+      message: "StateOfIssue must be one of NSW,QLD,SA,TAS,VIC,WA,ACT,NT"
     };
   }
+  return null;
 };
 
 // functions/kyc-func.ts
 var API_URL = "https://australia-southeast1-reporting-290bc.cloudfunctions.net/driverlicence";
 var handler = async (event) => {
-  validateRequest(event);
+  const errors = validateRequest(event);
+  if (errors) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: errors
+      })
+    };
+  }
   try {
     const { data } = await import_axios.default.post(API_URL, JSON.parse(event.body), {
       headers: {
@@ -2690,7 +2653,7 @@ var handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify(error.response.data)
+      body: JSON.stringify({ error: "internal server error" })
     };
   }
 };

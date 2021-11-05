@@ -1,1 +1,1 @@
-module.exports = require('./src/kyc-func.js')
+module.exports = require('./src/functions/kyc-func.js')

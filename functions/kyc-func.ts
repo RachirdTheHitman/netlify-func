@@ -13,7 +13,16 @@ export const handler = async (
   event: HandlerEvent
 ): Promise<HandlerResponse> => {
 
-  validateRequest(event);
+  const errors = validateRequest(event);
+
+  if(errors) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: errors,
+      } as ResponseBody),
+    };
+  }
 
   try {
     const { data } = await axios.post<ApiResponse>(
@@ -57,7 +66,7 @@ export const handler = async (
   } catch (error: any) {
     return {
       statusCode: 500,
-      body: JSON.stringify(error.response.data),
+      body: JSON.stringify({error: 'internal server error'}),
     };
   }
 };
